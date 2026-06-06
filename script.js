@@ -1,510 +1,342 @@
 /* ============================================================
-   ARABIC LUXURY WEDDING INVITATION — script.js
-   مهند & أسماء — ٢٠ أغسطس ٢٠٢٦
+   Wedding Invitation — Mohannad & Asmaa — script.js
 ============================================================ */
-
 'use strict';
 
-// ============================================================
-// CONFIGURATION
-// ============================================================
 const CONFIG = {
-  groomName:    'مهند',
-  brideName:    'أسماء',
-  weddingDate:  new Date('2026-08-20T18:00:00'),  // 6 PM on August 20, 2026
-  mapsUrl:      '#',  // Replace with actual Google Maps URL
-  musicUrl:     '',   // Replace with path to romantic music file
+  weddingDate : new Date('2026-08-20T18:00:00'),
+  mapsUrl     : '#',
+  musicUrl    : '',
 };
 
-
-// ============================================================
-// LOADING SCREEN
-// ============================================================
+/* ── LOADING ── */
 window.addEventListener('load', () => {
-  const loadingScreen = document.getElementById('loading-screen');
-
-  // Simulate loading bar then fade out
+  const ls = document.getElementById('loading-screen');
   setTimeout(() => {
-    loadingScreen.classList.add('fade-out');
-    setTimeout(() => {
-      loadingScreen.style.display = 'none';
-    }, 900);
-  }, 2000);
+    ls.classList.add('fade-out');
+    setTimeout(() => ls.style.display = 'none', 900);
+  }, 2400);
 });
 
-
-// ============================================================
-// PARTICLES CANVAS — Floating Golden Particles
-// ============================================================
-(function initParticles() {
-  const canvas  = document.getElementById('particles-canvas');
-  const ctx     = canvas.getContext('2d');
-  let particles = [];
-  let W, H;
-
-  function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-  }
-
-  resize();
-  window.addEventListener('resize', resize);
-
-  class Particle {
-    constructor() { this.reset(true); }
-
-    reset(init = false) {
-      this.x     = Math.random() * W;
-      this.y     = init ? Math.random() * H : H + 20;
-      this.size  = Math.random() * 3 + 1;
-      this.speedY = -(Math.random() * 0.4 + 0.15);
-      this.speedX = (Math.random() - 0.5) * 0.25;
-      this.opacity = Math.random() * 0.5 + 0.1;
-      this.glyph = ['✦', '✧', '·', '•'][Math.floor(Math.random() * 4)];
-      this.fontSize = Math.random() * 10 + 6;
-      this.rotation = Math.random() * Math.PI * 2;
-      this.rotSpeed = (Math.random() - 0.5) * 0.02;
+/* ── PARTICLES ── */
+(function(){
+  const cv = document.getElementById('particles-canvas');
+  const cx = cv.getContext('2d');
+  let W, H, pts = [];
+  function resize(){ W = cv.width = innerWidth; H = cv.height = innerHeight; }
+  resize(); addEventListener('resize', resize);
+  class P {
+    constructor(){ this.reset(true); }
+    reset(init){
+      this.x = Math.random()*W;
+      this.y = init ? Math.random()*H : H+20;
+      this.vy = -(Math.random()*.38+.14);
+      this.vx = (Math.random()-.5)*.2;
+      this.a  = Math.random()*.42+.08;
+      this.sz = Math.random()*9+5;
+      this.g  = ['✦','✧','·','•'][0|Math.random()*4];
+      this.r  = Math.random()*Math.PI*2;
+      this.rv = (Math.random()-.5)*.016;
     }
-
-    update() {
-      this.y        += this.speedY;
-      this.x        += this.speedX;
-      this.rotation += this.rotSpeed;
-      if (this.y < -20) this.reset();
-    }
-
-    draw() {
-      ctx.save();
-      ctx.globalAlpha = this.opacity;
-      ctx.translate(this.x, this.y);
-      ctx.rotate(this.rotation);
-      ctx.font = `${this.fontSize}px serif`;
-      ctx.fillStyle = '#C9A86A';
-      ctx.textAlign = 'center';
-      ctx.fillText(this.glyph, 0, 0);
-      ctx.restore();
+    update(){ this.y+=this.vy; this.x+=this.vx; this.r+=this.rv; if(this.y<-20)this.reset(); }
+    draw(){
+      cx.save(); cx.globalAlpha=this.a;
+      cx.translate(this.x,this.y); cx.rotate(this.r);
+      cx.font=`${this.sz}px serif`; cx.fillStyle='#C9A86A';
+      cx.textAlign='center'; cx.fillText(this.g,0,0); cx.restore();
     }
   }
-
-  // Create particles
-  for (let i = 0; i < 55; i++) {
-    particles.push(new Particle());
-  }
-
-  function animate() {
-    ctx.clearRect(0, 0, W, H);
-    particles.forEach(p => { p.update(); p.draw(); });
-    requestAnimationFrame(animate);
-  }
-
-  animate();
+  for(let i=0;i<55;i++) pts.push(new P());
+  (function loop(){ cx.clearRect(0,0,W,H); pts.forEach(p=>{p.update();p.draw();}); requestAnimationFrame(loop); })();
 })();
 
+/* ── SVG ENVELOPE ── */
+(function(){
+  const wrap   = document.getElementById('envelopeWrapper');
+  const env    = document.getElementById('mainEnvelope');
+  const flap   = document.getElementById('envFlapGroup');
+  const seal   = document.getElementById('waxSealSVG');
+  const sparks = document.getElementById('svgSparkles');
+  const cta    = document.getElementById('envCta');
+  const screen = document.getElementById('envelope-screen');
+  const main   = document.getElementById('main-invitation');
+  let opened = false;
 
-// ============================================================
-// ENVELOPE OPENING ANIMATION
-// ============================================================
-(function initEnvelope() {
-  const envelopeWrapper = document.getElementById('envelopeWrapper');
-  const mainEnvelope    = document.getElementById('mainEnvelope');
-  const envFlap         = document.getElementById('envFlap');
-  const waxSeal         = document.getElementById('waxSeal');
-  const envSparkles     = document.getElementById('envSparkles');
-  const envCta          = document.getElementById('envCta');
-  const envelopeScreen  = document.getElementById('envelope-screen');
-  const mainInvitation  = document.getElementById('main-invitation');
-  let hasOpened = false;
+  // Only the seal is clickable
+  seal.addEventListener('click', open);
+  // Also allow tapping the whole wrapper for easier mobile use
+  wrap.addEventListener('click', function(e){
+    // if user clicks envelope body too, open
+    if(!opened) open();
+  });
 
-  envelopeWrapper.addEventListener('click', openEnvelope);
+  function open(){
+    if(opened) return;
+    opened = true;
 
-  function openEnvelope() {
-    if (hasOpened) return;
-    hasOpened = true;
+    // Fade CTA
+    cta.style.transition = 'opacity .4s';
+    cta.style.opacity    = '0';
 
-    // Remove hover pointer
-    envelopeWrapper.style.cursor = 'default';
-    envCta.style.opacity = '0';
-    envCta.style.transition = 'opacity 0.4s ease';
+    // Pulse seal briefly, then break
+    seal.style.transition = 'transform .2s var(--bounce)';
+    seal.style.transform  = 'scale(1.12)';
+    seal.style.transformOrigin = '200px 230px';
 
-    // Step 1: Crack the wax seal
-    waxSeal.classList.add('cracked');
-
-    // Step 2: Sparkles appear
     setTimeout(() => {
-      envSparkles.classList.add('active');
+      seal.classList.add('seal-breaking');
+    }, 180);
+
+    // Sparkles burst
+    setTimeout(() => {
+      sparks.classList.remove('svg-sparkles-hidden');
+      sparks.classList.add('sparkle-active');
     }, 300);
 
-    // Step 3: Envelope flap opens
+    // Open flap
     setTimeout(() => {
-      envFlap.classList.add('open');
-    }, 500);
+      flap.classList.add('flap-open');
+    }, 520);
 
-    // Step 4: Music starts
-    setTimeout(() => {
-      tryPlayMusic();
-    }, 600);
+    // Try music
+    setTimeout(() => tryPlayMusic(), 640);
 
-    // Step 5: Envelope rises and fades
+    // Envelope rises away
     setTimeout(() => {
-      mainEnvelope.style.transition = 'transform 1s ease-in, opacity 0.8s ease';
-      mainEnvelope.style.transform  = 'translateY(-60px) scale(0.92)';
-      mainEnvelope.style.opacity    = '0';
-    }, 1200);
+      env.classList.add('env-rising');
+    }, 1250);
 
-    // Step 6: Reveal main invitation
+    // Reveal main invitation
     setTimeout(() => {
-      envelopeScreen.classList.add('opening-done');
-      mainInvitation.classList.remove('hidden');
+      screen.classList.add('opening-done');
+      main.classList.remove('hidden');
       document.body.style.overflowY = 'auto';
-
-      // Trigger first reveal animations
       requestAnimationFrame(() => {
-        triggerRevealAnimations();
+        triggerReveal();
         initScrollReveal();
         startCountdown();
+        initScratchCards();
       });
-    }, 2000);
+    }, 2100);
   }
 })();
 
-
-// ============================================================
-// SCROLL REVEAL ANIMATIONS
-// ============================================================
-function triggerRevealAnimations() {
-  const elements = document.querySelectorAll('.reveal-up');
-  elements.forEach(el => {
-    const rect = el.getBoundingClientRect();
-    if (rect.top < window.innerHeight * 0.95) {
-      el.classList.add('visible');
-    }
-  });
-}
-
-function initScrollReveal() {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-      }
-    });
-  }, {
-    threshold: 0.12,
-    rootMargin: '0px 0px -40px 0px',
-  });
-
+/* ── REVEAL ── */
+function triggerReveal(){
   document.querySelectorAll('.reveal-up').forEach(el => {
-    observer.observe(el);
+    if(el.getBoundingClientRect().top < innerHeight*.95) el.classList.add('visible');
   });
 }
-
-
-// ============================================================
-// COUNTDOWN TIMER
-// ============================================================
-function startCountdown() {
-  const cdDays    = document.getElementById('cd-days');
-  const cdHours   = document.getElementById('cd-hours');
-  const cdMinutes = document.getElementById('cd-minutes');
-  const cdSeconds = document.getElementById('cd-seconds');
-  const cdCards   = document.getElementById('countdownCards');
-  const cdDone    = document.getElementById('countdown-done');
-
-  function pad(n) { return String(n).padStart(2, '0'); }
-
-  function update() {
-    const now  = new Date();
-    const diff = CONFIG.weddingDate - now;
-
-    if (diff <= 0) {
-      cdCards.classList.add('hidden');
-      cdDone.classList.remove('hidden');
-      return;
-    }
-
-    const totalSec = Math.floor(diff / 1000);
-    const days    = Math.floor(totalSec / 86400);
-    const hours   = Math.floor((totalSec % 86400) / 3600);
-    const minutes = Math.floor((totalSec % 3600) / 60);
-    const seconds = totalSec % 60;
-
-    // Animate number change
-    animateNumberChange(cdDays,    pad(days));
-    animateNumberChange(cdHours,   pad(hours));
-    animateNumberChange(cdMinutes, pad(minutes));
-    animateNumberChange(cdSeconds, pad(seconds));
-  }
-
-  function animateNumberChange(el, newVal) {
-    if (el.textContent !== newVal) {
-      el.style.transform = 'scale(1.2)';
-      el.style.color     = '#B8924A';
-      el.textContent     = newVal;
-      setTimeout(() => {
-        el.style.transform = 'scale(1)';
-        el.style.color     = '';
-      }, 200);
-    }
-  }
-
-  update();
-  setInterval(update, 1000);
+function initScrollReveal(){
+  const obs = new IntersectionObserver(
+    es => es.forEach(e => e.isIntersecting && e.target.classList.add('visible')),
+    { threshold:.1, rootMargin:'0px 0px -40px 0px' }
+  );
+  document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
 }
 
-
-// ============================================================
-// RSVP FORM
-// ============================================================
-function submitRSVP() {
-  const nameInput   = document.getElementById('rsvp-name');
-  const guestsInput = document.getElementById('rsvp-guests');
-  const nameError   = document.getElementById('name-error');
-  const guestsError = document.getElementById('guests-error');
-
-  // Clear errors
-  nameError.textContent   = '';
-  guestsError.textContent = '';
-
-  const name   = nameInput.value.trim();
-  const guests = parseInt(guestsInput.value, 10);
-  let valid = true;
-
-  // Validate name
-  if (!name) {
-    nameError.textContent = 'يرجى إدخال اسمك الكريم';
-    nameInput.focus();
-    valid = false;
+/* ── COUNTDOWN ── */
+function startCountdown(){
+  const els = ['cd-days','cd-hours','cd-minutes','cd-seconds'].map(id => {
+    const el = document.getElementById(id);
+    if(el){ el.style.transition='transform .22s ease,color .22s ease'; el.style.display='inline-block'; }
+    return el;
+  });
+  const cards = document.getElementById('countdownCards');
+  const done  = document.getElementById('countdown-done');
+  const pad   = n => String(n).padStart(2,'0');
+  function bump(el,v){ if(el&&el.textContent!==v){ el.style.transform='scale(1.2)'; el.style.color='var(--gold)'; el.textContent=v; setTimeout(()=>{el.style.transform='scale(1)';el.style.color='';},220); } }
+  function tick(){
+    const d = CONFIG.weddingDate - new Date();
+    if(d<=0){ cards&&cards.classList.add('hidden'); done&&done.classList.remove('hidden'); return; }
+    const s = Math.floor(d/1000);
+    bump(els[0],pad(Math.floor(s/86400)));
+    bump(els[1],pad(Math.floor((s%86400)/3600)));
+    bump(els[2],pad(Math.floor((s%3600)/60)));
+    bump(els[3],pad(s%60));
   }
-
-  // Validate guests
-  if (!guestsInput.value || isNaN(guests) || guests < 1) {
-    guestsError.textContent = 'يرجى إدخال عدد صحيح من الأشخاص';
-    if (valid) guestsInput.focus();
-    valid = false;
-  }
-
-  if (!valid) return;
-
-  // SUCCESS — show confirmation
-  const formWrapper = document.getElementById('rsvp-form-wrapper');
-  const successEl   = document.getElementById('rsvp-success');
-
-  formWrapper.style.opacity    = '0';
-  formWrapper.style.transform  = 'scale(0.95)';
-  formWrapper.style.transition = 'all 0.4s ease';
-
-  setTimeout(() => {
-    formWrapper.classList.add('hidden');
-    successEl.classList.remove('hidden');
-  }, 400);
-
-  /*
-    TO CONNECT TO FIREBASE:
-    firebase.database().ref('rsvps').push({ name, guests, timestamp: Date.now() });
-
-    TO CONNECT TO GOOGLE SHEETS:
-    fetch('YOUR_GOOGLE_APPS_SCRIPT_URL', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, guests }),
-    });
-  */
-
-  console.log('RSVP submitted:', { name, guests });
+  tick(); setInterval(tick,1000);
 }
 
+/* ── SCRATCH CARDS ── */
+function initScratchCards(){
+  const defs = [
+    { canvasId:'canvas-day',   cardId:'card-day'   },
+    { canvasId:'canvas-month', cardId:'card-month' },
+    { canvasId:'canvas-year',  cardId:'card-year'  },
+  ];
+  let revealed = 0;
 
-// ============================================================
-// LIGHTBOX (Gallery)
-// ============================================================
-function openLightbox(element) {
-  const src = element.querySelector('img').src;
-  const lb  = document.getElementById('lightbox');
-  const img = document.getElementById('lightbox-img');
-  img.src   = src;
-  lb.classList.remove('hidden');
+  defs.forEach(({ canvasId, cardId }) => {
+    const canvas = document.getElementById(canvasId);
+    const card   = document.getElementById(cardId);
+    const ctx    = canvas.getContext('2d');
+    let scratching = false, done = false;
+
+    /* --- Draw gold coating --- */
+    function paint(){
+      const W = canvas.width, H = canvas.height;
+
+      // Rose-gold gradient base (matching envelope color scheme)
+      const g = ctx.createLinearGradient(0,0,W,H);
+      g.addColorStop(0,   '#DBA8B0');
+      g.addColorStop(0.3, '#C89098');
+      g.addColorStop(0.7, '#D8A0A8');
+      g.addColorStop(1,   '#B88090');
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,W,H);
+
+      // Dot texture
+      ctx.globalAlpha = .12;
+      for(let x=6;x<W;x+=12){
+        for(let y=6;y<H;y+=12){
+          ctx.beginPath(); ctx.arc(x,y,1.2,0,Math.PI*2);
+          ctx.fillStyle='rgba(255,255,255,.8)'; ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      // Decorative text
+      ctx.fillStyle   = 'rgba(255,220,220,.5)';
+      ctx.font        = `italic ${Math.round(W*.1)}px 'Cormorant Garamond', serif`;
+      ctx.textAlign   = 'center';
+      ctx.textBaseline= 'middle';
+      ctx.fillText('✦  scratch  ✦', W/2, H/2);
+
+      // Corner glyphs
+      ctx.font = `${Math.round(W*.1)}px serif`;
+      ctx.fillStyle = 'rgba(255,220,220,.35)';
+      ctx.textAlign='left';  ctx.textBaseline='top';    ctx.fillText('❧',8,8);
+      ctx.textAlign='right'; ctx.textBaseline='top';    ctx.fillText('❦',W-8,8);
+      ctx.textAlign='left';  ctx.textBaseline='bottom'; ctx.fillText('❦',8,H-8);
+      ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('❧',W-8,H-8);
+    }
+    paint();
+
+    /* --- Erase stroke --- */
+    function pos(e){
+      const r = canvas.getBoundingClientRect();
+      const sx = canvas.width  / r.width;
+      const sy = canvas.height / r.height;
+      const s  = e.touches ? e.touches[0] : e;
+      return { x:(s.clientX-r.left)*sx, y:(s.clientY-r.top)*sy };
+    }
+
+    function scratch(e){
+      if(!scratching||done) return;
+      e.preventDefault();
+      const {x,y} = pos(e);
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      // Larger radius for easier scratching on mobile
+      ctx.arc(x, y, Math.round(canvas.width*.14), 0, Math.PI*2);
+      ctx.fill();
+      checkDone();
+    }
+
+    function checkDone(){
+      const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+      let erased = 0;
+      for(let i=3;i<data.length;i+=4) if(data[i]===0) erased++;
+      if(erased / (canvas.width*canvas.height) > .55) fullyReveal();
+    }
+
+    function fullyReveal(){
+      if(done) return;
+      done = true;
+      canvas.style.transition = 'opacity .5s ease';
+      canvas.style.opacity    = '0';
+      card.classList.add('fully-revealed');
+      setTimeout(() => { canvas.style.display='none'; }, 500);
+      revealed++;
+      if(revealed===3) showFullDate();
+    }
+
+    canvas.addEventListener('mousedown',  e => { scratching=true; scratch(e); });
+    canvas.addEventListener('mousemove',  e => scratch(e));
+    canvas.addEventListener('mouseup',    () => scratching=false);
+    canvas.addEventListener('mouseleave', () => scratching=false);
+    canvas.addEventListener('touchstart', e => { scratching=true; scratch(e); }, {passive:false});
+    canvas.addEventListener('touchmove',  e => scratch(e), {passive:false});
+    canvas.addEventListener('touchend',   () => scratching=false);
+  });
+
+  function showFullDate(){
+    const el = document.getElementById('stdFullDate');
+    if(!el) return;
+    el.classList.remove('hidden');
+    setTimeout(() => el.scrollIntoView({behavior:'smooth',block:'center'}), 250);
+  }
+}
+
+/* ── LIGHTBOX ── */
+function openLightbox(el){
+  document.getElementById('lb-img').src = el.querySelector('img').src;
+  document.getElementById('lightbox').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
-
-function closeLightbox() {
+function closeLightbox(){
   document.getElementById('lightbox').classList.add('hidden');
   document.body.style.overflow = '';
 }
+document.addEventListener('keydown', e => e.key==='Escape' && closeLightbox());
 
-// Close lightbox on Escape key
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeLightbox();
+/* ── MUSIC ── */
+const mBtn = document.getElementById('music-btn');
+const mAudio = document.getElementById('bg-music');
+let mPlaying = false;
+
+function tryPlayMusic(){
+  if(!CONFIG.musicUrl) return;
+  mAudio.src = CONFIG.musicUrl; mAudio.volume = 0;
+  mAudio.play().then(() => {
+    mPlaying = true;
+    let v=0; const iv=setInterval(()=>{ v=Math.min(v+.03,.4); mAudio.volume=v; if(v>=.4)clearInterval(iv); },200);
+    updateMBtn();
+  }).catch(()=>{});
+}
+function updateMBtn(){
+  mBtn.querySelector('.music-icon').textContent = mPlaying ? '♫' : '♪';
+  mBtn.querySelector('.music-label').textContent = mPlaying ? 'Pause' : 'Music';
+  mBtn.classList.toggle('playing', mPlaying);
+}
+mBtn.addEventListener('click', () => {
+  if(!CONFIG.musicUrl) return;
+  mPlaying ? mAudio.pause() : mAudio.play().catch(()=>{});
+  mPlaying = !mPlaying; updateMBtn();
 });
 
+/* ── CALENDAR ── */
+function addToCalendar(){
+  const t = encodeURIComponent('Wedding of Mohannad & Asmaa');
+  const d = encodeURIComponent('You are joyfully invited to celebrate our wedding.');
+  window.open(`https://www.google.com/calendar/render?action=TEMPLATE&text=${t}&dates=20260820/20260821&details=${d}`,'_blank');
+}
 
-// ============================================================
-// BACKGROUND MUSIC
-// ============================================================
-const musicBtn   = document.getElementById('music-btn');
-const bgMusic    = document.getElementById('bg-music');
-let musicPlaying = false;
-let musicEnabled = false;
-
-function tryPlayMusic() {
-  if (!CONFIG.musicUrl) return;  // No music file configured
-  bgMusic.src = CONFIG.musicUrl;
-  bgMusic.volume = 0;
-
-  bgMusic.play().then(() => {
-    musicPlaying = true;
-    musicEnabled = true;
-    fadeInMusic();
-    updateMusicBtn();
-  }).catch(() => {
-    // Autoplay blocked — user must interact
-    musicEnabled = false;
-    updateMusicBtn();
+/* ── SAVE DATE .ICS ── */
+function saveTheDate(){
+  const ics = ['BEGIN:VCALENDAR','VERSION:2.0','BEGIN:VEVENT',
+    'DTSTART:20260820T180000Z','DTEND:20260820T230000Z',
+    'SUMMARY:Wedding of Mohannad & Asmaa',
+    'STATUS:CONFIRMED','END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const a = Object.assign(document.createElement('a'),{
+    href:URL.createObjectURL(new Blob([ics],{type:'text/calendar'})),
+    download:'wedding-mohannad-asmaa.ics'
   });
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-function fadeInMusic() {
-  let vol = 0;
-  const interval = setInterval(() => {
-    vol = Math.min(vol + 0.03, 0.4);
-    bgMusic.volume = vol;
-    if (vol >= 0.4) clearInterval(interval);
-  }, 200);
-}
+/* ── VENUE PARALLAX ── */
+addEventListener('scroll', () => {
+  const img = document.querySelector('.venue-img');
+  if(!img) return;
+  const r = img.getBoundingClientRect();
+  const f = (innerHeight/2-(r.top+r.height/2))/innerHeight;
+  img.style.transform = `scale(${Math.min(1+Math.abs(f)*.06,1.08)})`;
+}, {passive:true});
 
-function toggleMusic() {
-  if (!CONFIG.musicUrl) {
-    alert('يرجى إضافة ملف الموسيقى في إعدادات CONFIG');
-    return;
-  }
-
-  if (musicPlaying) {
-    bgMusic.pause();
-    musicPlaying = false;
-  } else {
-    bgMusic.play().catch(() => {});
-    musicPlaying = true;
-  }
-  updateMusicBtn();
-}
-
-function updateMusicBtn() {
-  const icon  = musicBtn.querySelector('.music-icon');
-  const label = musicBtn.querySelector('.music-label');
-  if (musicPlaying) {
-    icon.textContent  = '♫';
-    label.textContent = 'إيقاف الموسيقى';
-    musicBtn.classList.add('playing');
-  } else {
-    icon.textContent  = '♪';
-    label.textContent = 'تشغيل الموسيقى';
-    musicBtn.classList.remove('playing');
-  }
-}
-
-musicBtn.addEventListener('click', toggleMusic);
-
-
-// ============================================================
-// ADD TO CALENDAR
-// ============================================================
-function addToCalendar() {
-  const title    = encodeURIComponent('حفل زفاف مهند وأسماء');
-  const details  = encodeURIComponent('نتشرف بدعوتكم لمشاركتنا أجمل لحظات العمر');
-  const date     = '20260820';
-  const dateEnd  = '20260821';
-
-  // Google Calendar URL
-  const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${date}/${dateEnd}&details=${details}`;
-  window.open(url, '_blank');
-}
-
-
-// ============================================================
-// SAVE THE DATE (download .ics file)
-// ============================================================
-function saveTheDate() {
-  const icsContent = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Wedding//AR//EN',
-    'BEGIN:VEVENT',
-    'DTSTART:20260820T180000Z',
-    'DTEND:20260820T230000Z',
-    'SUMMARY:حفل زفاف مهند وأسماء',
-    'DESCRIPTION:نتشرف بدعوتكم لمشاركتنا أجمل لحظات العمر',
-    'STATUS:CONFIRMED',
-    'END:VEVENT',
-    'END:VCALENDAR',
-  ].join('\r\n');
-
-  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = 'wedding-mohannad-asmaa.ics';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-
-// ============================================================
-// MAP DIRECTIONS BUTTON
-// ============================================================
+/* ── MAP BTN ── */
 document.addEventListener('DOMContentLoaded', () => {
-  const mapBtn = document.getElementById('mapDirectionsBtn');
-  if (mapBtn && CONFIG.mapsUrl && CONFIG.mapsUrl !== '#') {
-    mapBtn.href = CONFIG.mapsUrl;
-  }
-});
-
-
-// ============================================================
-// SMOOTH SCROLL — for any anchor links
-// ============================================================
-document.querySelectorAll('a[href^="#"]').forEach(link => {
-  link.addEventListener('click', e => {
-    const target = document.querySelector(link.getAttribute('href'));
-    if (target) {
-      e.preventDefault();
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  });
-});
-
-
-// ============================================================
-// VENUE IMAGE — cinematic zoom on scroll
-// ============================================================
-window.addEventListener('scroll', () => {
-  const venueImg = document.querySelector('.venue-img');
-  if (!venueImg) return;
-  const rect   = venueImg.getBoundingClientRect();
-  const center = rect.top + rect.height / 2;
-  const factor = (window.innerHeight / 2 - center) / window.innerHeight;
-  const scale  = 1 + Math.abs(factor) * 0.06;
-  venueImg.style.transform = `scale(${Math.min(scale, 1.08)})`;
-}, { passive: true });
-
-
-// ============================================================
-// NUMBER INPUT — Arabic / LTR fix
-// ============================================================
-document.getElementById('rsvp-guests')?.addEventListener('input', function () {
-  this.value = this.value.replace(/[^0-9]/g, '');
-});
-
-
-// ============================================================
-// COUNTER CARD TRANSITIONS — add CSS transition
-// ============================================================
-document.addEventListener('DOMContentLoaded', () => {
-  ['cd-days', 'cd-hours', 'cd-minutes', 'cd-seconds'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.style.transition = 'transform 0.2s ease, color 0.2s ease';
-      el.style.display    = 'inline-block';
-    }
-  });
+  const b = document.getElementById('mapDirectionsBtn');
+  if(b && CONFIG.mapsUrl !== '#') b.href = CONFIG.mapsUrl;
 });
